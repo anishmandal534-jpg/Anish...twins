@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persona Twin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--border:#e3e6ea;--text:#1a1d24;--muted:#6b7280;--muted-2:#9aa0ab;--accent:#3457d5;--accent-hover:#2c48b8;--accent-soft:#ecf0ff;--danger:#c0392b;--radius:10px;--shadow:0 1px 2px rgba(16,24,40,.05)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased}
+body{display:grid;grid-template-columns:272px 1fr;height:100vh;overflow:hidden}
+button,input,textarea{font-family:inherit}
+button{cursor:pointer}
+button:disabled{cursor:default}
+#sidebar{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
+.sidebar-header{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;letter-spacing:-.01em}
+.brand .mark{width:26px;height:26px;border-radius:7px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.persona-name{font-size:11.5px;color:var(--muted);margin-top:6px;padding-left:35px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.new-chat-btn{margin:14px 16px 6px;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:13.5px;font-weight:600;transition:.12s}
+.new-chat-btn:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-hover)}
+.section-label{padding:16px 16px 6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2)}
+#history-list{flex:1;overflow-y:auto;padding:0 10px 10px;display:flex;flex-direction:column;gap:2px}
+.history-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--text);border:1px solid transparent}
+.history-item:hover{background:var(--bg)}
+.history-item.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-hover);font-weight:600}
+.h-title{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.h-del{opacity:0;color:var(--muted-2);font-size:15px;line-height:1;padding:2px 4px;border-radius:4px}
+.history-item:hover .h-del{opacity:1}
+.h-del:hover{color:var(--danger);background:#fbe9e7}
+.history-empty{padding:10px;font-size:12.5px;color:var(--muted-2);line-height:1.5}
+.sidebar-footer{border-top:1px solid var(--border);padding:10px}
+.settings-btn{width:100%;display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:7px;border:none;background:transparent;color:var(--text);font-size:13.5px;font-weight:500;text-align:left}
+.settings-btn:hover{background:var(--bg)}
+#main{display:flex;flex-direction:column;min-width:0;height:100vh}
+header{padding:14px 24px;border-bottom:1px solid var(--border);background:var(--panel);display:flex;align-items:center;justify-content:space-between}
+.header-left{display:flex;align-items:center;gap:9px;min-width:0}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#9aa0ab;display:inline-block;flex-shrink:0}
+.status-dot.online{background:#22a06b}
+.status-dot.offline{background:#c0392b}
+header h1{margin:0;font-size:14.5px;font-weight:600}
+header .subtitle{font-size:12px;color:var(--muted-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{width:32px;height:32px;border-radius:7px;border:1px solid var(--border);background:var(--panel);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.icon-btn:hover{background:var(--bg);color:var(--text)}
+#mobile-menu-btn{display:none}
+#chat{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:4px}
+.row{display:flex;margin:7px 0;animation:rise .2s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.row.user{justify-content:flex-end}.row.assistant,.row.error{justify-content:flex-start}
+.bubble-wrap{max-width:70%;display:flex;flex-direction:column}
+.row.user .bubble-wrap{align-items:flex-end}.row.assistant .bubble-wrap,.row.error .bubble-wrap{align-items:flex-start}
+.label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted-2);margin-bottom:4px}
+.bubble{padding:10px 14px;border-radius:12px;font-size:14.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;box-shadow:var(--shadow)}
+.row.user .bubble{background:var(--accent);color:#fff;border-bottom-right-radius:3px}
+.row.assistant .bubble{background:var(--panel);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:3px}
+.row.error .bubble{background:#fdf2f1;border:1px solid #f2c6c0;color:var(--danger);font-size:13px;border-bottom-left-radius:3px}
+.typing{display:inline-flex;gap:4px;padding:4px 0}.typing span{width:5px;height:5px;border-radius:50%;background:var(--muted-2);animation:bounce 1.1s infinite ease-in-out}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-4px);opacity:1}}
+#input-area{padding:14px 24px 20px;border-top:1px solid var(--border);background:var(--panel)}
+#attachments{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.chip{display:flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent-hover);border:1px solid #cdd8ff;border-radius:7px;padding:5px 8px;font-size:12px;font-weight:500;max-width:100%}
+.chip span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip.uploading{background:var(--bg);color:var(--muted);border-color:var(--border)}
+.chip.error{background:#fdf2f1;color:var(--danger);border-color:#f2c6c0;cursor:pointer}
+.chip.error:hover{background:#fbe4e1}
+.chip-remove{cursor:pointer;color:inherit;opacity:.7;font-size:13px;line-height:1}
+.chip-remove:hover{opacity:1}
+#form{display:flex;align-items:flex-end;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:7px 7px 7px 12px}
+#form:focus-within{border-color:var(--accent);background:var(--panel)}
+textarea{flex:1;resize:none;max-height:160px;background:transparent;border:none;outline:none;color:var(--text);font-size:14.5px;line-height:1.5;padding:8px 0;min-height:40px}
+textarea::placeholder{color:var(--muted-2)}
+.input-icon-btn{flex-shrink:0;width:34px;height:34px;border-radius:8px;border:none;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.input-icon-btn:hover:not(:disabled){background:var(--border);color:var(--text)}
+.input-icon-btn.recording{background:#fdeceb;color:var(--danger)}
+.input-icon-btn.recording svg{animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.input-icon-btn:disabled{opacity:.35}
+#send-btn{flex-shrink:0;height:34px;padding:0 16px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13.5px;transition:.12s}
+#send-btn:hover:not(:disabled){background:var(--accent-hover)}#send-btn:disabled{opacity:.4}
+.input-hint{margin-top:7px;font-size:11px;color:var(--muted-2);text-align:center}
+#empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);gap:6px}
+#empty .glyph{width:44px;height:44px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:6px}
+#empty p{max-width:360px;font-size:13px;line-height:1.6;margin:0}
+.modal-overlay{position:fixed;inset:0;background:rgba(20,22,28,.4);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal-overlay.open{display:flex}.modal{background:var(--panel);border-radius:12px;width:400px;max-width:100%;box-shadow:0 12px 32px rgba(16,24,40,.18);overflow:hidden}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-header h2{margin:0;font-size:15px;font-weight:700}.modal-body{padding:18px 20px;display:flex;flex-direction:column;gap:16px}
+.field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}.field input[type=text]{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:13.5px;outline:none}
+.field input[type=text]:focus{border-color:var(--accent)}.field .hint{font-size:11.5px;color:var(--muted-2);margin-top:5px}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:8px}
+.btn{padding:8px 14px;border-radius:7px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--panel);color:var(--text)}
+.btn:hover{background:var(--bg)}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.primary:hover{background:var(--accent-hover)}
+.btn.danger{color:var(--danger);border-color:#f2c6c0}.btn.danger:hover{background:#fdf2f1}
+@media(max-width:760px){
+body{grid-template-columns:1fr}#sidebar{display:none;position:fixed;z-index:20;width:272px;height:100vh;box-shadow:8px 0 24px rgba(0,0,0,.08)}
+#sidebar.open{display:flex}#mobile-menu-btn{display:flex}header{padding:12px 14px}#chat{padding:16px}#input-area{padding:10px 14px 14px}.bubble-wrap{max-width:85%}
+}
+</style>
+</head>
+<body>
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="brand"><span class="mark">P</span>Persona Twin</div>
+    <div class="persona-name" id="persona-name-label">No persona loaded</div>
+  </div>
+  <button class="new-chat-btn" id="new-chat-btn" type="button">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    New chat
+  </button>
+  <div class="section-label">History</div>
+  <div id="history-list"></div>
+  <div class="sidebar-footer">
+    <button class="settings-btn" id="settings-btn" type="button">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+  </div>
+</aside>
+ 
+<main id="main">
+  <header>
+    <div class="header-left">
+      <span class="status-dot" id="status-dot"></span>
+      <div>
+        <h1 id="header-title">Untitled Persona</h1>
+        <div class="subtitle" id="header-subtitle">Checking backend…</div>
+      </div>
+    </div>
+    <button class="icon-btn" id="mobile-menu-btn" type="button" title="History" aria-label="Open history">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+  </header>
+ 
+  <div id="chat">
+    <div id="empty">
+      <div class="glyph">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <p>Nothing said yet. Attach a document, use voice input, or just type a message.</p>
+    </div>
+  </div>
+ 
+  <div id="input-area">
+    <div id="attachments"></div>
+    <form id="form">
+      <button type="button" class="input-icon-btn" id="attach-btn" title="Attach document" aria-label="Attach document">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      </button>
+      <input type="file" id="file-input" multiple accept=".txt,.md,.pdf,.docx" hidden>
+      <textarea id="input" rows="1" placeholder="Type a message…" aria-label="Message"></textarea>
+      <button type="button" class="input-icon-btn" id="mic-btn" title="Voice input" aria-label="Voice input">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+      </button>
+      <button id="send-btn" type="submit">Send</button>
+    </form>
+    <div class="input-hint">Enter to send · Shift+Enter for a new line</div>
+  </div>
+</main>
+ 
+<div class="modal-overlay" id="settings-overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-header">
+      <h2 id="settings-title">Settings</h2>
+      <button class="icon-btn" id="settings-close" type="button" style="border:none" aria-label="Close settings">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="backend-url-input">Backend URL</label>
+        <input type="text" id="backend-url-input" placeholder="http://localhost:8000" autocomplete="url">
+        <div class="hint">FastAPI base URL. Example: http://localhost:8000</div>
+      </div>
+      <div class="field">
+        <label for="persona-name-input">Persona display name</label>
+        <input type="text" id="persona-name-input" placeholder="e.g. My Persona">
+        <div class="hint">Display label only. Your backend still controls persona behavior.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn danger" id="clear-history-btn" type="button">Clear all history</button>
+      <button class="btn primary" id="settings-save-btn" type="button">Save</button>
+    </div>
+  </div>
+</div>
+ 
+<script>
+"use strict";
+ 
+const STORAGE_KEYS = {
+  history: "personaTwin.history",
+  backendUrl: "personaTwin.backendUrl",
+  personaName: "personaTwin.personaName"
+};
+ 
+const DEFAULT_BACKEND_URL = "http://localhost:8000";
+const UPLOAD_TIMEOUT_MS = 30000; // NEW: stop an upload hanging forever
+// Use the known local FastAPI backend by default.
+// This intentionally ignores any stale backend URL saved in localStorage.
+let BACKEND_URL = DEFAULT_BACKEND_URL;
+ 
+const chatEl = document.getElementById("chat");
+const emptyEl = document.getElementById("empty");
+const formEl = document.getElementById("form");
+const inputEl = document.getElementById("input");
+const sendEl = document.getElementById("send-btn");
+const historyListEl = document.getElementById("history-list");
+const newChatBtn = document.getElementById("new-chat-btn");
+const attachBtn = document.getElementById("attach-btn");
+const fileInputEl = document.getElementById("file-input");
+const attachmentsEl = document.getElementById("attachments");
+const micBtn = document.getElementById("mic-btn");
+const headerTitle = document.getElementById("header-title");
+const headerSubtitle = document.getElementById("header-subtitle");
+const personaNameLabel = document.getElementById("persona-name-label");
+const statusDot = document.getElementById("status-dot");
+const sidebar = document.getElementById("sidebar");
+ 
+let messages = [];
+let attachedDocs = [];
+let currentSessionId = null;
+let isSending = false;
+ 
+function normalizeBackendUrl(value) {
+  return String(value || "").trim().replace(/\/+$/, "") || DEFAULT_BACKEND_URL;
+}
+ 
+function loadHistory() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.history) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+ 
+function saveHistory(list) {
+  localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(list));
+}
+ 
+function createSessionId() {
+  return "s_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+}
+ 
+function renderHistory() {
+  const list = loadHistory();
+  historyListEl.innerHTML = "";
+ 
+  if (!list.length) {
+    const empty = document.createElement("div");
+    empty.className = "history-empty";
+    empty.textContent = "Conversations you save will appear here.";
+    historyListEl.appendChild(empty);
+    return;
+  }
+ 
+  list.slice().reverse().forEach(session => {
+    const item = document.createElement("div");
+    item.className = "history-item" + (session.id === currentSessionId ? " active" : "");
+ 
+    const title = document.createElement("div");
+    title.className = "h-title";
+    title.textContent = session.title || "New conversation";
+ 
+    const del = document.createElement("button");
+    del.className = "h-del";
+    del.type = "button";
+    del.textContent = "×";
+    del.title = "Delete conversation";
+    del.setAttribute("aria-label", "Delete conversation");
+ 
+    del.addEventListener("click", event => {
+      event.stopPropagation();
+      const updated = loadHistory().filter(s => s.id !== session.id);
+      saveHistory(updated);
+      if (session.id === currentSessionId) startNewChat(false);
+      renderHistory();
+    });
+ 
+    item.append(title, del);
+    item.addEventListener("click", () => {
+      loadSession(session.id);
+      sidebar.classList.remove("open");
+    });
+    historyListEl.appendChild(item);
+  });
+}
+ 
+function persistCurrentSession() {
+  if (!messages.length || !currentSessionId) return;
+ 
+  const list = loadHistory();
+  const firstUserMessage = messages.find(m => m.role === "user");
+  const rawTitle = firstUserMessage?.content || "New conversation";
+  const title = rawTitle.slice(0, 48) + (rawTitle.length > 48 ? "…" : "");
+ 
+  const session = {
+    id: currentSessionId,
+    title,
+    messages: messages.map(m => ({ role: m.role, content: m.content })),
+    updatedAt: Date.now()
+  };
+ 
+  const index = list.findIndex(s => s.id === currentSessionId);
+  if (index >= 0) list[index] = session;
+  else list.push(session);
+ 
+  saveHistory(list);
+}
+ 
+function loadSession(id) {
+  const session = loadHistory().find(s => s.id === id);
+  if (!session) return;
+ 
+  currentSessionId = session.id;
+  messages = Array.isArray(session.messages) ? session.messages.slice() : [];
+  attachedDocs = [];
+  renderAttachments();
+  rebuildChatFromMessages();
+  renderHistory();
+}
+ 
+function startNewChat(persistFirst = true) {
+  if (persistFirst) persistCurrentSession();
+ 
+  currentSessionId = createSessionId();
+  messages = [];
+  attachedDocs = [];
+  renderAttachments();
+  rebuildChatFromMessages();
+  renderHistory();
+  inputEl.focus();
+}
+ 
+function rebuildChatFromMessages() {
+  chatEl.innerHTML = "";
+ 
+  if (!messages.length) {
+    chatEl.appendChild(emptyEl);
+    return;
+  }
+ 
+  messages.forEach(message => addRow(message.role, message.content));
+}
+ 
+function ensureStarted() {
+  if (chatEl.contains(emptyEl)) emptyEl.remove();
+}
+ 
+function addRow(role, content = "", isTyping = false) {
+  ensureStarted();
+ 
+  const row = document.createElement("div");
+  row.className = "row " + role;
+ 
+  const wrap = document.createElement("div");
+  wrap.className = "bubble-wrap";
+ 
+  if (role !== "error") {
+    const label = document.createElement("div");
+    label.className = "label";
+    label.textContent = role === "user" ? "You" : "Persona";
+    wrap.appendChild(label);
+  }
+ 
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+ 
+  if (isTyping) {
+    const typing = document.createElement("span");
+    typing.className = "typing";
+    for (let i = 0; i < 3; i++) typing.appendChild(document.createElement("span"));
+    bubble.appendChild(typing);
+  } else {
+    bubble.textContent = content;
+  }
+ 
+  wrap.appendChild(bubble);
+  row.appendChild(wrap);
+  chatEl.appendChild(row);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return bubble;
+}
+ 
+function renderAttachments() {
+  attachmentsEl.innerHTML = "";
+ 
+  attachedDocs.forEach((doc, index) => {
+    const chip = document.createElement("div");
+    chip.className = "chip" +
+      (doc.status === "uploading" ? " uploading" : "") +
+      (doc.status === "error" ? " error" : "");
+ 
+    const label = document.createElement("span");
+    label.textContent =
+      doc.status === "uploading" ? `Uploading ${doc.filename}…` :
+      doc.status === "error" ? `⚠ ${doc.filename} (click to retry)` :
+      doc.filename;
+ 
+    // NEW: clicking an errored chip retries the upload instead of leaving it dead
+    if (doc.status === "error") {
+      chip.title = doc.error || "Upload failed";
+      chip.addEventListener("click", event => {
+        if (event.target.closest(".chip-remove")) return;
+        doc.status = "uploading";
+        doc.error = "";
+        renderAttachments();
+        uploadFile(doc._file, doc);
+      });
+    }
+ 
+    const remove = document.createElement("button");
+    remove.className = "chip-remove";
+    remove.type = "button";
+    remove.textContent = "×";
+    remove.title = "Remove attachment";
+    remove.addEventListener("click", event => {
+      event.stopPropagation();
+      attachedDocs.splice(index, 1);
+      renderAttachments();
+    });
+ 
+    chip.append(label, remove);
+    attachmentsEl.appendChild(chip);
+  });
+}
+ 
+async function uploadFile(file, doc) {
+  doc._file = file; // NEW: keep a reference so retry can re-send the same file
+ 
+  const formData = new FormData();
+  formData.append("file", file);
+ 
+  // NEW: abort the request if the backend never responds, instead of hanging forever
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+ 
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/upload`, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal
+    });
+ 
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.detail || data.message || `Upload failed (${response.status})`);
+    }
+ 
+    if (typeof data.text !== "string") {
+      throw new Error("Upload succeeded but the backend did not return a 'text' field.");
+    }
+ 
+    doc.text = data.text;
+    doc.status = "ready";
+  } catch (error) {
+    // NEW: distinguish a timeout from other failures, and log to console for debugging
+    const isAbort = error && error.name === "AbortError";
+    const message = isAbort
+      ? `Upload timed out after ${UPLOAD_TIMEOUT_MS / 1000}s — is the backend running at ${BACKEND_URL}?`
+      : (error instanceof Error ? error.message : String(error));
+ 
+    console.error("[persona-twin] upload failed:", message, error);
+ 
+    doc.status = "error";
+    doc.error = message;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+ 
+  renderAttachments();
+}
+ 
+attachBtn.addEventListener("click", () => {
+  console.log("[persona-twin] attach button clicked"); // NEW: quick sanity check in console
+  fileInputEl.click();
+});
+ 
+fileInputEl.addEventListener("change", async () => {
+  const files = Array.from(fileInputEl.files || []);
+  fileInputEl.value = "";
+ 
+  console.log("[persona-twin] files selected:", files.map(f => f.name)); // NEW
+ 
+  for (const file of files) {
+    const doc = { filename: file.name, text: "", status: "uploading", error: "", _file: file };
+    attachedDocs.push(doc);
+    renderAttachments();
+    await uploadFile(file, doc);
+  }
+});
+ 
+const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognizer = null;
+let recording = false;
+let baseTextBeforeVoice = "";
+ 
+if (!SpeechRecognitionImpl) {
+  micBtn.disabled = true;
+  micBtn.title = "Voice input is not supported in this browser.";
+} else {
+  recognizer = new SpeechRecognitionImpl();
+  recognizer.continuous = true;
+  recognizer.interimResults = true;
+  recognizer.lang = "en-US";
+ 
+  recognizer.onresult = event => {
+    let finalText = "";
+    let interimText = "";
+ 
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) finalText += transcript;
+      else interimText += transcript;
+    }
+ 
+    const separator = baseTextBeforeVoice && !baseTextBeforeVoice.endsWith(" ") ? " " : "";
+    inputEl.value = baseTextBeforeVoice + separator + finalText + interimText;
+    autoResize();
+ 
+    if (finalText) baseTextBeforeVoice = inputEl.value;
+  };
+ 
+  recognizer.onerror = () => stopRecording();
+  recognizer.onend = () => stopRecording();
+}
+ 
+function startRecording() {
+  if (!recognizer || recording) return;
+ 
+  baseTextBeforeVoice = inputEl.value;
+  recording = true;
+  micBtn.classList.add("recording");
+  micBtn.title = "Stop voice input";
+ 
+  try {
+    recognizer.start();
+  } catch {
+    stopRecording();
+  }
+}
+ 
+function stopRecording() {
+  recording = false;
+  micBtn.classList.remove("recording");
+  micBtn.title = "Voice input";
+  if (recognizer) {
+    try { recognizer.stop(); } catch {}
+  }
+}
+ 
+micBtn.addEventListener("click", () => recording ? stopRecording() : startRecording());
+ 
+function autoResize() {
+  inputEl.style.height = "auto";
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px";
+}
+ 
+inputEl.addEventListener("input", autoResize);
+ 
+inputEl.addEventListener("keydown", event => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    if (!isSending) formEl.requestSubmit();
+  }
+});
+ 
+async function sendMessage(text) {
+  if (isSending || !text) return;
+ 
+  if (!currentSessionId) currentSessionId = createSessionId();
+  if (recording) stopRecording();
+ 
+  messages.push({ role: "user", content: text });
+  addRow("user", text);
+ 
+  inputEl.value = "";
+  autoResize();
+  isSending = true;
+  sendEl.disabled = true;
+  attachBtn.disabled = true;
+  micBtn.disabled = true;
+ 
+  const typingBubble = addRow("assistant", "", true);
+ 
+  const readyDocs = attachedDocs
+    .filter(doc => doc.status === "ready")
+    .map(doc => ({ filename: doc.filename, text: doc.text }));
+ 
+  try {
+    const response = await fetch(`${BACKEND_URL}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages,
+        session_id: currentSessionId || "default",
+        ...(readyDocs.length ? { documents: readyDocs } : {})
+      })
+    });
+ 
+    const data = await response.json().catch(() => ({}));
+ 
+    if (!response.ok) {
+      throw new Error(data.detail || data.message || `Request failed (${response.status})`);
+    }
+ 
+    if (typeof data.reply !== "string") {
+      throw new Error("Backend response is missing a string 'reply' field.");
+    }
+ 
+    typingBubble.textContent = data.reply;
+    messages.push({ role: "assistant", content: data.reply });
+    persistCurrentSession();
+    renderHistory();
+    setBackendStatus(true);
+  } catch (error) {
+    const row = typingBubble.closest(".row");
+    if (row) row.remove();
+ 
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[persona-twin] send failed:", message, error); // NEW
+    addRow("error", `Error: ${message}\n\nBackend: ${BACKEND_URL}`);
+    setBackendStatus(false);
+  } finally {
+    isSending = false;
+    sendEl.disabled = false;
+    attachBtn.disabled = false;
+    micBtn.disabled = !SpeechRecognitionImpl;
+    inputEl.focus();
+  }
+}
+ 
+formEl.addEventListener("submit", event => {
+  event.preventDefault();
+  const text = inputEl.value.trim();
+  if (text) sendMessage(text);
+});
+ 
+newChatBtn.addEventListener("click", () => startNewChat(true));
+ 
+document.getElementById("mobile-menu-btn").addEventListener("click", () => {
+  sidebar.classList.toggle("open");
+});
+ 
+const overlay = document.getElementById("settings-overlay");
+const backendUrlInput = document.getElementById("backend-url-input");
+const personaNameInput = document.getElementById("persona-name-input");
+ 
+function openSettings() {
+  backendUrlInput.value = BACKEND_URL;
+  personaNameInput.value = localStorage.getItem(STORAGE_KEYS.personaName) || "";
+  overlay.classList.add("open");
+  overlay.setAttribute("aria-hidden", "false");
+  backendUrlInput.focus();
+}
+ 
+function closeSettings() {
+  overlay.classList.remove("open");
+  overlay.setAttribute("aria-hidden", "true");
+}
+ 
+document.getElementById("settings-btn").addEventListener("click", openSettings);
+document.getElementById("settings-close").addEventListener("click", closeSettings);
+ 
+overlay.addEventListener("click", event => {
+  if (event.target === overlay) closeSettings();
+});
+ 
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && overlay.classList.contains("open")) closeSettings();
+});
+ 
+document.getElementById("settings-save-btn").addEventListener("click", () => {
+  BACKEND_URL = normalizeBackendUrl(backendUrlInput.value);
+  localStorage.setItem(STORAGE_KEYS.backendUrl, BACKEND_URL);
+ 
+  const name = personaNameInput.value.trim();
+  localStorage.setItem(STORAGE_KEYS.personaName, name);
+  applyPersonaName(name);
+ 
+  closeSettings();
+  checkBackend();
+});
+ 
+document.getElementById("clear-history-btn").addEventListener("click", () => {
+  if (!confirm("Delete all saved conversations? This cannot be undone.")) return;
+  saveHistory([]);
+  startNewChat(false);
+});
+ 
+function applyPersonaName(name) {
+  personaNameLabel.textContent = name || "No persona loaded";
+  headerTitle.textContent = name || "Untitled Persona";
+  headerSubtitle.textContent = name
+    ? `Chatting as ${name}`
+    : "No persona applied yet";
+}
+ 
+function setBackendStatus(online) {
+  statusDot.classList.toggle("online", online);
+  statusDot.classList.toggle("offline", !online);
+}
+ 
+async function checkBackend() {
+  headerSubtitle.textContent = "Checking backend…";
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/health`, {
+      method: "GET",
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      setBackendStatus(false);
+      headerSubtitle.textContent =
+        `Backend responded with ${response.status}`;
+      return;
+    }
+
+    const healthData = await response.json();
+
+    console.log("[persona-twin] backend health:", healthData);
+
+    if (!healthData.openrouter_configured) {
+      setBackendStatus(false);
+      headerSubtitle.textContent =
+        "Backend connected · OpenRouter key missing";
+
+      console.error(
+        "[persona-twin] OpenRouter API key is not configured."
+      );
+
+      return;
+    }
+
+    setBackendStatus(true);
+
+    const name =
+      localStorage.getItem(STORAGE_KEYS.personaName) || "";
+
+    headerSubtitle.textContent = name
+      ? `Chatting as ${name}`
+      : "Backend connected · OpenRouter ready";
+  } catch (error) {
+    console.error(
+      "[persona-twin] backend check failed:",
+      error
+    );
+
+    setBackendStatus(false);
+
+    const name =
+      localStorage.getItem(STORAGE_KEYS.personaName) || "";
+
+    headerSubtitle.textContent = name
+      ? `Chatting as ${name} · backend offline`
+      : "Backend offline";
+  }
+}
+ 
+applyPersonaName(localStorage.getItem(STORAGE_KEYS.personaName) || "");
+renderHistory();
+startNewChat(false);
+checkBackend();
+</script>
+</body>
+</html>
