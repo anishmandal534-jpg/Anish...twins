@@ -1,0 +1,20 @@
+fastapi
+uvicorn[standard]
+openai
+pydantic
+python-multipart
+pypdf
+python-docx
+python-dotenv
+
+# vector store
+qdrant-client
+
+# graph db
+neo4j
+
+# local embeddings (no extra API key needed)
+sentence-transformers
+
+# URL article extraction
+trafilatura
